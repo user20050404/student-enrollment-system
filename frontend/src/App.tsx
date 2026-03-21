@@ -13,10 +13,10 @@ import {
   CssBaseline,
 } from '@mui/material';
 import {
-  School,
   People,
   Class,
   MenuBook,
+  School,
   Dashboard,
 } from '@mui/icons-material';
 import StudentsPage from './pages/StudentsPage';
@@ -25,6 +25,7 @@ import SectionsPage from './pages/SectionsPage';
 import EnrollmentsPage from './pages/EnrollmentsPage';
 import DashboardPage from './pages/DashboardPage';
 import StudentDetailsPage from './pages/StudentDetailsPage';
+import logo from './logow.jpg';
 
 const theme = createTheme({
   palette: {
@@ -54,7 +55,11 @@ function App() {
         <Box sx={{ flexGrow: 1 }}>
           <AppBar position="static">
             <Toolbar>
-              <School sx={{ mr: 2 }} />
+              <img
+                src={logo}
+                alt="Logo"
+                style={{ height: '40px', marginRight: '12px' }}
+              />
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                 Student Enrollment & Sectioning System
               </Typography>
