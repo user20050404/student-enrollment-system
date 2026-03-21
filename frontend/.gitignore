@@ -1,0 +1,80 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.log
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# PostgreSQL
+*.pgdata
+
+# Virtual Environment
+venv/
+backend/venv/
+*.venv
+
+# Node / React - BUT NOT THE SOURCE CODE!
+# Only ignore node_modules and build files
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+/build
+/coverage
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.example
+
+# Backend specific
+backend/db.sqlite3
+backend/staticfiles/
+backend/media/
+backend/__pycache__/
+
+# Frontend specific - IGNORE ONLY node_modules and build
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.env
+
+# BUT DO NOT ignore frontend/src/ folder!
+# The src folder should be tracked
