@@ -56,12 +56,17 @@ WSGI_APPLICATION = 'enrollment_system.wsgi.application'
 # Database Configuration
 DATABASES = {
     'default': {
+<<<<<<< HEAD
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'enrollment_db',
         'USER': 'postgres',
         'PASSWORD': 'CodeZeroSix', 
         'HOST': 'localhost',
         'PORT': '5432',
+=======
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+>>>>>>> c270a04ff8a2d8271d54e949a71d106f1e19f886
     }
 }
 
