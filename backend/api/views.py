@@ -1,6 +1,7 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import status
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from .models import Subject, Student, Section, Enrollment, EnrollmentSummary
@@ -9,7 +10,12 @@ from .serializers import (
     EnrollmentSerializer, EnrollmentSummarySerializer
 )
 
-class SubjectViewSet(viewsets.ModelViewSet):
+# Subject Views
+class SubjectListCreateView(ListCreateAPIView):
+    queryset = Subject.objects.all()
+    serializer_class = SubjectSerializer
+
+class SubjectRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
     
@@ -22,40 +28,58 @@ class SubjectViewSet(viewsets.ModelViewSet):
             )
         return super().destroy(request, *args, **kwargs)
 
-class StudentViewSet(viewsets.ModelViewSet):
+# Student Views
+class StudentListCreateView(ListCreateAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
-    
-    @action(detail=True, methods=['get'])
-    def enrollments(self, request, pk=None):
-        student = self.get_object()
-        enrollments = student.enrollments.all()
-        serializer = EnrollmentSerializer(enrollments, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=True, methods=['get'])
-    def summary(self, request, pk=None):
-        student = self.get_object()
-        summaries = student.summaries.all()
-        serializer = EnrollmentSummarySerializer(summaries, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=True, methods=['get'])
-    def total_units(self, request, pk=None):
-        student = self.get_object()
-        semester = request.query_params.get('semester', None)
-        school_year = request.query_params.get('school_year', None)
-        total_units = student.get_total_units(semester, school_year)
-        return Response({'total_units': total_units})
-    
-    @action(detail=True, methods=['get'])
-    def enrolled_subjects(self, request, pk=None):
-        student = self.get_object()
-        enrollments = student.enrollments.filter(status='enrolled')
-        serializer = EnrollmentSerializer(enrollments, many=True)
-        return Response(serializer.data)
 
-class SectionViewSet(viewsets.ModelViewSet):
+class StudentRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
+
+class StudentEnrollmentsView(APIView):
+    def get(self, request, pk):
+        try:
+            student = Student.objects.get(pk=pk)
+            enrollments = student.enrollments.all()
+            serializer = EnrollmentSerializer(enrollments, many=True)
+            return Response(serializer.data)
+        except Student.DoesNotExist:
+            return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+
+class StudentSummaryView(APIView):
+    def get(self, request, pk):
+        try:
+            student = Student.objects.get(pk=pk)
+            summaries = student.summaries.all()
+            serializer = EnrollmentSummarySerializer(summaries, many=True)
+            return Response(serializer.data)
+        except Student.DoesNotExist:
+            return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+
+class StudentTotalUnitsView(APIView):
+    def get(self, request, pk):
+        try:
+            student = Student.objects.get(pk=pk)
+            semester = request.query_params.get('semester', None)
+            school_year = request.query_params.get('school_year', None)
+            total_units = student.get_total_units(semester, school_year)
+            return Response({'total_units': total_units})
+        except Student.DoesNotExist:
+            return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+
+class StudentEnrolledSubjectsView(APIView):
+    def get(self, request, pk):
+        try:
+            student = Student.objects.get(pk=pk)
+            enrollments = student.enrollments.filter(status='enrolled')
+            serializer = EnrollmentSerializer(enrollments, many=True)
+            return Response(serializer.data)
+        except Student.DoesNotExist:
+            return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+
+# Section Views
+class SectionListCreateView(ListCreateAPIView):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
     
@@ -68,15 +92,23 @@ class SectionViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except ValidationError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=True, methods=['get'])
-    def enrollments(self, request, pk=None):
-        section = self.get_object()
-        enrollments = section.enrollments.all()
-        serializer = EnrollmentSerializer(enrollments, many=True)
-        return Response(serializer.data)
 
-class EnrollmentViewSet(viewsets.ModelViewSet):
+class SectionRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = Section.objects.all()
+    serializer_class = SectionSerializer
+
+class SectionEnrollmentsView(APIView):
+    def get(self, request, pk):
+        try:
+            section = Section.objects.get(pk=pk)
+            enrollments = section.enrollments.all()
+            serializer = EnrollmentSerializer(enrollments, many=True)
+            return Response(serializer.data)
+        except Section.DoesNotExist:
+            return Response({'error': 'Section not found'}, status=status.HTTP_404_NOT_FOUND)
+
+# Enrollment Views
+class EnrollmentListCreateView(ListCreateAPIView):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
     
@@ -105,6 +137,10 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class EnrollmentRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = Enrollment.objects.all()
+    serializer_class = EnrollmentSerializer
     
     def destroy(self, request, *args, **kwargs):
         try:
@@ -129,13 +165,11 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-class EnrollmentSummaryViewSet(viewsets.ModelViewSet):
+# Enrollment Summary Views
+class EnrollmentSummaryListCreateView(ListCreateAPIView):
     queryset = EnrollmentSummary.objects.all()
     serializer_class = EnrollmentSummarySerializer
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        student_id = self.request.query_params.get('student_id', None)
-        if student_id:
-            queryset = queryset.filter(student_id=student_id)
-        return queryset
+
+class EnrollmentSummaryRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = EnrollmentSummary.objects.all()
+    serializer_class = EnrollmentSummarySerializer

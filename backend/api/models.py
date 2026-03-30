@@ -115,15 +115,14 @@ class Enrollment(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enrolled')
     
     class Meta:
-        unique_together = ['student', 'section']  # Prevent duplicate enrollment in same section
+        unique_together = ['student', 'section']
     
     def clean(self):
         # Check if section is full
         if self.section.current_count >= self.section.max_capacity:
             raise ValidationError("Section is already full")
         
-        # Check if student is already enrolled in the same subject (different section)
-        # This prevents enrolling in multiple sections of the same subject
+        # Check if student is already enrolled in the same subject
         existing_enrollment = Enrollment.objects.filter(
             student=self.student,
             section__subject=self.section.subject,
