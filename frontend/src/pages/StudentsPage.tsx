@@ -22,11 +22,26 @@ import {
   Box,
   Typography,
   Tooltip,
+  Avatar,
+  alpha,
+  useTheme,
+  Grow,
 } from '@mui/material';
-import { Edit, Delete, Add, Warning, Visibility } from '@mui/icons-material';
+import { 
+  Edit, 
+  Delete, 
+  Add, 
+  Warning, 
+  Visibility,
+  Person,
+  School,
+  Email,
+  Refresh,
+} from '@mui/icons-material';
 import { studentsApi, Student } from '../services/api';
 
 const StudentsPage: React.FC = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
@@ -43,6 +58,7 @@ const StudentsPage: React.FC = () => {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
     fetchStudents();
@@ -52,9 +68,15 @@ const StudentsPage: React.FC = () => {
     try {
       const data = await studentsApi.getAll();
       setStudents(data);
+      setLastUpdated(new Date());
     } catch (error) {
       showSnackbar('Error fetching students', 'error');
     }
+  };
+
+  const handleRefresh = () => {
+    fetchStudents();
+    setLastUpdated(new Date());
   };
 
   const validateForm = (): boolean => {
@@ -194,85 +216,198 @@ const StudentsPage: React.FC = () => {
     }
   };
 
+  const getProgramColor = (program: string): string => {
+    switch (program) {
+      case 'BSIT':
+        return '#2196f3';
+      case 'BSCS':
+        return '#4caf50';
+      case 'BSIS':
+        return '#ff9800';
+      default:
+        return '#9e9e9e';
+    }
+  };
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Students</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Student
-        </Button>
+      {/* Header Section */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" fontWeight="700">
+          Students
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Chip 
+            icon={<Refresh />} 
+            label={`Last updated: ${lastUpdated.toLocaleTimeString()}`} 
+            size="small"
+            variant="outlined"
+            onClick={handleRefresh}
+          />
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+            disabled={loading}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              px: 3,
+            }}
+          >
+            Add Student
+          </Button>
+        </Box>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-            <TableRow>
-              <TableCell><strong>Student Number</strong></TableCell>
-              <TableCell><strong>Name</strong></TableCell>
-              <TableCell><strong>Email</strong></TableCell>
-              <TableCell><strong>Program</strong></TableCell>
-              <TableCell><strong>Year Level</strong></TableCell>
-              <TableCell><strong>Status</strong></TableCell>
-              <TableCell><strong>Actions</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {students.map((student) => (
-              <TableRow 
-                key={student.id} 
-                hover 
-                sx={{ cursor: 'pointer' }}
-                onClick={() => navigate(`/students/${student.id}`)}
-              >
-                <TableCell>{student.student_number}</TableCell>
-                <TableCell>{`${student.last_name}, ${student.first_name}`}</TableCell>
-                <TableCell>{student.email}</TableCell>
-                <TableCell>{student.program}</TableCell>
-                <TableCell>{student.year_level}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={student.status.replace('_', ' ').toUpperCase()}
-                    color={getStatusColor(student.status)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <Tooltip title="Edit Student">
-                    <IconButton onClick={() => handleOpenDialog(student)}>
-                      <Edit />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete Student">
-                    <IconButton onClick={() => handleDelete(student.id)}>
-                      <Delete />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="View Details">
-                    <IconButton onClick={() => navigate(`/students/${student.id}`)} color="primary">
-                      <Visibility />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
+      {/* Students Table */}
+      <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+        <TableContainer>
+          <Table>
+            <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+              <TableRow>
+                <TableCell><strong>Student Number</strong></TableCell>
+                <TableCell><strong>Name</strong></TableCell>
+                <TableCell><strong>Email</strong></TableCell>
+                <TableCell><strong>Program</strong></TableCell>
+                <TableCell><strong>Year Level</strong></TableCell>
+                <TableCell><strong>Status</strong></TableCell>
+                <TableCell><strong>Actions</strong></TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {students.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Box sx={{ py: 8, textAlign: 'center' }}>
+                      <Person sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+                      <Typography variant="h6" color="text.secondary" gutterBottom>
+                        No Students Found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Click "Add Student" to create a new student record
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                students.map((student) => (
+                  <TableRow 
+                    key={student.id} 
+                    hover 
+                    sx={{ 
+                      cursor: 'pointer',
+                      '&:last-child td, &:last-child th': { border: 0 }
+                    }}
+                    onClick={() => navigate(`/students/${student.id}`)}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="500">
+                        {student.student_number}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Avatar 
+                          sx={{ 
+                            width: 32, 
+                            height: 32, 
+                            bgcolor: alpha(getProgramColor(student.program), 0.1),
+                            color: getProgramColor(student.program),
+                            fontSize: 14
+                          }}
+                        >
+                          {student.first_name[0]}{student.last_name[0]}
+                        </Avatar>
+                        <Typography variant="body2">
+                          {`${student.last_name}, ${student.first_name}`}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Email sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Typography variant="body2">{student.email}</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={student.program} 
+                        size="small"
+                        sx={{ 
+                          bgcolor: alpha(getProgramColor(student.program), 0.1),
+                          color: getProgramColor(student.program),
+                          fontWeight: 500
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{student.year_level}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={student.status.replace('_', ' ').toUpperCase()}
+                        color={getStatusColor(student.status)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Tooltip title="Edit Student">
+                        <IconButton onClick={() => handleOpenDialog(student)} size="small">
+                          <Edit />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete Student">
+                        <IconButton onClick={() => handleDelete(student.id)} size="small" color="error">
+                          <Delete />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="View Details">
+                        <IconButton onClick={() => navigate(`/students/${student.id}`)} color="primary" size="small">
+                          <Visibility />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {editingStudent ? 'Edit Student' : 'Add New Student'}
+      {/* Add/Edit Student Dialog */}
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="sm" 
+        fullWidth
+        TransitionComponent={Grow}
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
+      >
+        <DialogTitle sx={{ borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
+              <Person />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" fontWeight="600">
+                {editingStudent ? 'Edit Student' : 'Add New Student'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {editingStudent ? 'Update student information' : 'Create a new student record'}
+              </Typography>
+            </Box>
             {Object.keys(errors).length > 0 && (
               <Warning color="error" sx={{ ml: 1 }} />
             )}
           </Box>
         </DialogTitle>
-        <DialogContent>
+        
+        <DialogContent sx={{ pt: 3 }}>
           <TextField
             fullWidth
             label="Student Number"
@@ -286,6 +421,7 @@ const StudentsPage: React.FC = () => {
             error={!!errors.student_number}
             helperText={errors.student_number}
             disabled={loading}
+            sx={{ mb: 1 }}
           />
           <TextField
             fullWidth
@@ -300,6 +436,7 @@ const StudentsPage: React.FC = () => {
             error={!!errors.first_name}
             helperText={errors.first_name}
             disabled={loading}
+            sx={{ mb: 1 }}
           />
           <TextField
             fullWidth
@@ -314,6 +451,7 @@ const StudentsPage: React.FC = () => {
             error={!!errors.last_name}
             helperText={errors.last_name}
             disabled={loading}
+            sx={{ mb: 1 }}
           />
           <TextField
             fullWidth
@@ -330,6 +468,7 @@ const StudentsPage: React.FC = () => {
             helperText={errors.email}
             disabled={loading}
             placeholder="example@university.edu"
+            sx={{ mb: 1 }}
           />
           <TextField
             fullWidth
@@ -339,6 +478,7 @@ const StudentsPage: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, program: e.target.value })}
             margin="normal"
             disabled={loading}
+            sx={{ mb: 1 }}
           >
             <MenuItem value="BSIT">BS Information Technology</MenuItem>
             <MenuItem value="BSCS">BS Computer Science</MenuItem>
@@ -352,6 +492,7 @@ const StudentsPage: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, year_level: e.target.value })}
             margin="normal"
             disabled={loading}
+            sx={{ mb: 1 }}
           >
             <MenuItem value="1">1st Year</MenuItem>
             <MenuItem value="2">2nd Year</MenuItem>
@@ -375,20 +516,40 @@ const StudentsPage: React.FC = () => {
             </TextField>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={loading}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" disabled={loading}>
-            {loading ? 'Saving...' : (editingStudent ? 'Update' : 'Add')}
+        
+        <DialogActions sx={{ p: 2.5, borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+          <Button 
+            onClick={handleCloseDialog} 
+            disabled={loading}
+            sx={{ borderRadius: 2, textTransform: 'none' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            disabled={loading}
+            sx={{ borderRadius: 2, textTransform: 'none', px: 3 }}
+          >
+            {loading ? 'Saving...' : (editingStudent ? 'Update Student' : 'Add Student')}
           </Button>
         </DialogActions>
       </Dialog>
 
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+        <Alert 
+          severity={snackbar.severity} 
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          variant="filled"
+          elevation={6}
+          sx={{ borderRadius: 2 }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

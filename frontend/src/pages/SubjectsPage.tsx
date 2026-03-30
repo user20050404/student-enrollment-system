@@ -20,11 +20,25 @@ import {
   Snackbar,
   Box,
   Typography,
+  Avatar,
+  alpha,
+  useTheme,
+  Grow,
+  Tooltip,
 } from '@mui/material';
-import { Edit, Delete, Add, Warning } from '@mui/icons-material';
+import { 
+  Edit, 
+  Delete, 
+  Add, 
+  Warning,
+  MenuBook,
+  Refresh,
+  School,
+} from '@mui/icons-material';
 import { subjectsApi, Subject } from '../services/api';
 
 const SubjectsPage: React.FC = () => {
+  const theme = useTheme();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
@@ -39,6 +53,7 @@ const SubjectsPage: React.FC = () => {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
     fetchSubjects();
@@ -48,29 +63,32 @@ const SubjectsPage: React.FC = () => {
     try {
       const data = await subjectsApi.getAll();
       setSubjects(data);
+      setLastUpdated(new Date());
     } catch (error) {
       showSnackbar('Error fetching subjects', 'error');
     }
   };
 
+  const handleRefresh = () => {
+    fetchSubjects();
+    setLastUpdated(new Date());
+  };
+
   const validateForm = (): boolean => {
     const newErrors: {[key: string]: string} = {};
     
-    // Subject Code validation
     if (!formData.subject_code.trim()) {
       newErrors.subject_code = 'Subject code is required';
     } else if (!/^[A-Z0-9]{3,10}$/.test(formData.subject_code.toUpperCase())) {
       newErrors.subject_code = 'Subject code must be 3-10 uppercase letters/numbers (e.g., CS101)';
     }
     
-    // Subject Name validation
     if (!formData.subject_name.trim()) {
       newErrors.subject_name = 'Subject name is required';
     } else if (formData.subject_name.length < 3) {
       newErrors.subject_name = 'Subject name must be at least 3 characters';
     }
     
-    // Units validation
     if (formData.units <= 0) {
       newErrors.units = 'Units must be greater than 0';
     } else if (formData.units > 6) {
@@ -170,71 +188,182 @@ const SubjectsPage: React.FC = () => {
     setSnackbar({ open: true, message, severity });
   };
 
+  const getUnitColor = (units: number) => {
+    if (units >= 5) return '#f44336';
+    if (units >= 3) return '#ff9800';
+    return '#4caf50';
+  };
+
+  const activeCount = subjects.filter(s => s.status === 'active').length;
+  const inactiveCount = subjects.filter(s => s.status === 'inactive').length;
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Subjects</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Subject
-        </Button>
+      {/* Header Section */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" fontWeight="700">
+          Subjects
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Chip 
+            icon={<Refresh />} 
+            label={`Last updated: ${lastUpdated.toLocaleTimeString()}`} 
+            size="small"
+            variant="outlined"
+            onClick={handleRefresh}
+          />
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+            disabled={loading}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              px: 3,
+            }}
+          >
+            Add Subject
+          </Button>
+        </Box>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Subject Code</TableCell>
-              <TableCell>Subject Name</TableCell>
-              <TableCell>Units</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Offered On</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {subjects.map((subject) => (
-              <TableRow key={subject.id}>
-                <TableCell>{subject.subject_code}</TableCell>
-                <TableCell>{subject.subject_name}</TableCell>
-                <TableCell>{subject.units}</TableCell>
-                <TableCell>{subject.description}</TableCell>
-                <TableCell>{subject.offered_on}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={subject.status.toUpperCase()}
-                    color={subject.status === 'active' ? 'success' : 'error'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleOpenDialog(subject)}>
-                    <Edit />
-                  </IconButton>
-                  <IconButton onClick={() => handleDelete(subject.id)}>
-                    <Delete />
-                  </IconButton>
-                </TableCell>
+      {/* Subjects Table */}
+      <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+        <TableContainer>
+          <Table>
+            <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+              <TableRow>
+                <TableCell><strong>Subject Code</strong></TableCell>
+                <TableCell><strong>Subject Name</strong></TableCell>
+                <TableCell><strong>Units</strong></TableCell>
+                <TableCell><strong>Description</strong></TableCell>
+                <TableCell><strong>Offered On</strong></TableCell>
+                <TableCell><strong>Status</strong></TableCell>
+                <TableCell><strong>Actions</strong></TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {subjects.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Box sx={{ py: 8, textAlign: 'center' }}>
+                      <MenuBook sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+                      <Typography variant="h6" color="text.secondary" gutterBottom>
+                        No Subjects Found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Click "Add Subject" to create a new subject
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                subjects.map((subject) => (
+                  <TableRow key={subject.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Avatar 
+                          sx={{ 
+                            width: 32, 
+                            height: 32, 
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            color: theme.palette.primary.main,
+                            fontSize: 14
+                          }}
+                        >
+                          <School sx={{ fontSize: 16 }} />
+                        </Avatar>
+                        <Typography variant="body2" fontWeight="500">
+                          {subject.subject_code}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {subject.subject_name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={`${subject.units} units`} 
+                        size="small"
+                        sx={{ 
+                          bgcolor: alpha(getUnitColor(subject.units), 0.1),
+                          color: getUnitColor(subject.units),
+                          fontWeight: 500
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {subject.description || '—'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {subject.offered_on || '—'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={subject.status.toUpperCase()}
+                        color={subject.status === 'active' ? 'success' : 'error'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip title="Edit Subject">
+                        <IconButton onClick={() => handleOpenDialog(subject)} size="small">
+                          <Edit />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete Subject">
+                        <IconButton onClick={() => handleDelete(subject.id)} size="small" color="error">
+                          <Delete />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {editingSubject ? 'Edit Subject' : 'Add New Subject'}
+      {/* Add/Edit Subject Dialog */}
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="md" 
+        fullWidth
+        TransitionComponent={Grow}
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
+      >
+        <DialogTitle sx={{ borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
+              <MenuBook />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" fontWeight="600">
+                {editingSubject ? 'Edit Subject' : 'Add New Subject'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {editingSubject ? 'Update subject information' : 'Create a new subject'}
+              </Typography>
+            </Box>
             {Object.keys(errors).length > 0 && (
               <Warning color="error" sx={{ ml: 1 }} />
             )}
           </Box>
         </DialogTitle>
-        <DialogContent>
+        
+        <DialogContent sx={{ pt: 3 }}>
           <TextField
             fullWidth
             label="Subject Code"
@@ -248,6 +377,7 @@ const SubjectsPage: React.FC = () => {
             error={!!errors.subject_code}
             helperText={errors.subject_code || 'Example: CS101, MATH201'}
             disabled={loading}
+            sx={{ mb: 1 }}
           />
           <TextField
             fullWidth
@@ -262,6 +392,7 @@ const SubjectsPage: React.FC = () => {
             error={!!errors.subject_name}
             helperText={errors.subject_name}
             disabled={loading}
+            sx={{ mb: 1 }}
           />
           <TextField
             fullWidth
@@ -279,6 +410,7 @@ const SubjectsPage: React.FC = () => {
             helperText={errors.units || 'Units must be between 1-6'}
             inputProps={{ min: 1, max: 6 }}
             disabled={loading}
+            sx={{ mb: 1 }}
           />
           <TextField
             fullWidth
@@ -289,6 +421,7 @@ const SubjectsPage: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             margin="normal"
             disabled={loading}
+            sx={{ mb: 1 }}
           />
           <TextField
             fullWidth
@@ -298,6 +431,7 @@ const SubjectsPage: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, offered_on: e.target.value })}
             margin="normal"
             disabled={loading}
+            sx={{ mb: 1 }}
           />
           {editingSubject && (
             <TextField
@@ -314,20 +448,40 @@ const SubjectsPage: React.FC = () => {
             </TextField>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={loading}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" disabled={loading}>
-            {loading ? 'Saving...' : (editingSubject ? 'Update' : 'Add')}
+        
+        <DialogActions sx={{ p: 2.5, borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+          <Button 
+            onClick={handleCloseDialog} 
+            disabled={loading}
+            sx={{ borderRadius: 2, textTransform: 'none' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            disabled={loading}
+            sx={{ borderRadius: 2, textTransform: 'none', px: 3 }}
+          >
+            {loading ? 'Saving...' : (editingSubject ? 'Update Subject' : 'Add Subject')}
           </Button>
         </DialogActions>
       </Dialog>
 
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+        <Alert 
+          severity={snackbar.severity} 
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          variant="filled"
+          elevation={6}
+          sx={{ borderRadius: 2 }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

@@ -27,8 +27,25 @@ import {
   FormHelperText,
   CircularProgress,
   Grid,
+  Avatar,
+  alpha,
+  useTheme,
+  Tooltip,
+  Fade,
+  Grow,
 } from '@mui/material';
-import { Delete, Add, School, Warning, Info } from '@mui/icons-material';
+import { 
+  Delete, 
+  Add, 
+  School, 
+  Warning, 
+  Info, 
+  Person, 
+  Class as ClassIcon,
+  Schedule,
+  Room,
+  Refresh,
+} from '@mui/icons-material';
 import { enrollmentsApi, studentsApi, sectionsApi, Enrollment, Student, Section } from '../services/api';
 
 interface SectionDetails {
@@ -53,6 +70,7 @@ interface StudentDetails {
 }
 
 const EnrollmentsPage: React.FC = () => {
+  const theme = useTheme();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
@@ -64,11 +82,10 @@ const EnrollmentsPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [studentEnrollments, setStudentEnrollments] = useState<Enrollment[]>([]);
   const [totalUnits, setTotalUnits] = useState<number>(0);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
-    fetchEnrollments();
-    fetchStudents();
-    fetchSections();
+    fetchAllData();
   }, []);
 
   useEffect(() => {
@@ -79,6 +96,11 @@ const EnrollmentsPage: React.FC = () => {
       setTotalUnits(0);
     }
   }, [selectedStudent]);
+
+  const fetchAllData = async () => {
+    await Promise.all([fetchEnrollments(), fetchStudents(), fetchSections()]);
+    setLastUpdated(new Date());
+  };
 
   const fetchEnrollments = async (): Promise<void> => {
     try {
@@ -113,7 +135,6 @@ const EnrollmentsPage: React.FC = () => {
       const activeEnrollments = data.filter(e => e.status === 'enrolled');
       setStudentEnrollments(activeEnrollments);
       
-      // Calculate total units
       const total = activeEnrollments.reduce((sum, e) => sum + e.units, 0);
       setTotalUnits(total);
     } catch (error) {
@@ -136,7 +157,6 @@ const EnrollmentsPage: React.FC = () => {
         newErrors.section = `This section is already full. Maximum capacity is ${selectedSectionObj.max_capacity} students.`;
       }
       
-      // Check if student is already enrolled in this section
       if (selectedStudent) {
         const alreadyEnrolled = enrollments.some(
           e => e.student === parseInt(selectedStudent) && e.section === parseInt(selectedSection)
@@ -146,7 +166,6 @@ const EnrollmentsPage: React.FC = () => {
         }
       }
       
-      // Check if student is already enrolled in the same subject
       if (selectedStudent && selectedSectionObj) {
         const alreadyEnrolledInSubject = studentEnrollments.some(
           e => e.subject_code === selectedSectionObj.subject_code
@@ -253,6 +272,11 @@ const EnrollmentsPage: React.FC = () => {
     }
   };
 
+  const handleRefresh = () => {
+    fetchAllData();
+    setLastUpdated(new Date());
+  };
+
   const showSnackbar = (message: string, severity: 'success' | 'error'): void => {
     setSnackbar({ open: true, message, severity });
   };
@@ -311,108 +335,185 @@ const EnrollmentsPage: React.FC = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Enrollments</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleOpenDialog}
-          disabled={loading}
-        >
-          Enroll Student
-        </Button>
+      {/* Header Section */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" fontWeight="700">
+          Enrollments
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Chip 
+            icon={<Refresh />} 
+            label={`Last updated: ${lastUpdated.toLocaleTimeString()}`} 
+            size="small"
+            variant="outlined"
+            onClick={handleRefresh}
+          />
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleOpenDialog}
+            disabled={loading}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              px: 3,
+            }}
+          >
+            Enroll Student
+          </Button>
+        </Box>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-            <TableRow>
-              <TableCell><strong>Student Number</strong></TableCell>
-              <TableCell><strong>Student Name</strong></TableCell>
-              <TableCell><strong>Subject</strong></TableCell>
-              <TableCell><strong>Section</strong></TableCell>
-              <TableCell><strong>Units</strong></TableCell>
-              <TableCell><strong>Schedule</strong></TableCell>
-              <TableCell><strong>Room</strong></TableCell>
-              <TableCell><strong>Enrolled Date</strong></TableCell>
-              <TableCell><strong>Status</strong></TableCell>
-              <TableCell><strong>Actions</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {enrollments.length === 0 ? (
+      {/* Enrollments Table */}
+      <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+        <TableContainer>
+          <Table>
+            <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
               <TableRow>
-                <TableCell colSpan={10} align="center">
-                  <Typography variant="body1" sx={{ py: 4, color: 'text.secondary' }}>
-                    No enrollments found. Click "Enroll Student" to add enrollments.
-                  </Typography>
-                </TableCell>
+                <TableCell><strong>Student Number</strong></TableCell>
+                <TableCell><strong>Student Name</strong></TableCell>
+                <TableCell><strong>Subject</strong></TableCell>
+                <TableCell><strong>Section</strong></TableCell>
+                <TableCell><strong>Units</strong></TableCell>
+                <TableCell><strong>Schedule</strong></TableCell>
+                <TableCell><strong>Room</strong></TableCell>
+                <TableCell><strong>Enrolled Date</strong></TableCell>
+                <TableCell><strong>Status</strong></TableCell>
+                <TableCell><strong>Actions</strong></TableCell>
               </TableRow>
-            ) : (
-              enrollments.map((enrollment: Enrollment) => (
-                <TableRow key={enrollment.id} hover>
-                  <TableCell>{enrollment.student_number}</TableCell>
-                  <TableCell>{enrollment.student_name}, {enrollment.student_first_name}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      <strong>{enrollment.subject_code}</strong>
-                      <br />
-                      <span style={{ fontSize: '0.8rem', color: 'gray' }}>
-                        {enrollment.subject_name}
-                      </span>
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{enrollment.section_code}</TableCell>
-                  <TableCell>{enrollment.units}</TableCell>
-                  <TableCell>{enrollment.schedule || 'N/A'}</TableCell>
-                  <TableCell>{enrollment.room || 'N/A'}</TableCell>
-                  <TableCell>{new Date(enrollment.enrolled_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={enrollment.status.toUpperCase()}
-                      color={enrollment.status === 'enrolled' ? 'success' : 'error'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton 
-                      onClick={() => handleDrop(enrollment.id)} 
-                      color="error"
-                      disabled={loading}
-                      title="Drop Student"
-                    >
-                      <Delete />
-                    </IconButton>
+            </TableHead>
+            <TableBody>
+              {enrollments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} align="center">
+                    <Box sx={{ py: 8, textAlign: 'center' }}>
+                      <School sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+                      <Typography variant="h6" color="text.secondary" gutterBottom>
+                        No Enrollments Found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Click "Enroll Student" to add enrollments
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              ) : (
+                enrollments.map((enrollment: Enrollment) => (
+                  <TableRow key={enrollment.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="500">
+                        {enrollment.student_number}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{enrollment.student_name}, {enrollment.student_first_name}</TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" fontWeight="600">
+                          {enrollment.subject_code}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {enrollment.subject_name}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={enrollment.section_code} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ fontWeight: 500 }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={`${enrollment.units} units`} 
+                        size="small" 
+                        color="primary" 
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Schedule sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Typography variant="body2">{enrollment.schedule || 'N/A'}</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Room sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Typography variant="body2">{enrollment.room || 'N/A'}</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {new Date(enrollment.enrolled_at).toLocaleDateString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={enrollment.status.toUpperCase()}
+                        color={enrollment.status === 'enrolled' ? 'success' : 'error'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip title="Drop Student">
+                        <IconButton 
+                          onClick={() => handleDrop(enrollment.id)} 
+                          color="error"
+                          disabled={loading}
+                        >
+                          <Delete />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
+      {/* Enrollment Dialog */}
       <Dialog 
         open={openDialog} 
         onClose={handleCloseDialog} 
         maxWidth="md" 
         fullWidth
         disableEscapeKeyDown={loading}
+        TransitionComponent={Grow}
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
       >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <School color="primary" />
-            <Typography variant="h6">Enroll Student in Subjects</Typography>
+        <DialogTitle sx={{ borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
+                <School />
+              </Avatar>
+              <Box>
+                <Typography variant="h6" fontWeight="600">
+                  Enroll Student in Subjects
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Select a student and section to enroll
+                </Typography>
+              </Box>
+            </Box>
             {(errors.student || errors.section) && (
-              <Warning color="error" sx={{ ml: 1 }} />
+              <Warning color="error" />
             )}
           </Box>
         </DialogTitle>
         
-        <DialogContent>
-          <Grid container spacing={2}>
+        <DialogContent sx={{ pt: 3 }}>
+          <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 6 }}>
               {/* Student Selection */}
-              <FormControl fullWidth margin="normal" error={!!errors.student}>
+              <FormControl fullWidth error={!!errors.student}>
                 <InputLabel>Select Student</InputLabel>
                 <Select
                   value={selectedStudent}
@@ -422,13 +523,17 @@ const EnrollmentsPage: React.FC = () => {
                   }}
                   label="Select Student"
                   disabled={loading}
+                  sx={{ borderRadius: 2 }}
                 >
                   <MenuItem value="">
                     <em>Choose a student</em>
                   </MenuItem>
                   {students.map((student: Student) => (
                     <MenuItem key={student.id} value={student.id.toString()}>
-                      {student.student_number} - {student.last_name}, {student.first_name}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Person fontSize="small" />
+                        {student.student_number} - {student.last_name}, {student.first_name}
+                      </Box>
                     </MenuItem>
                   ))}
                 </Select>
@@ -437,56 +542,73 @@ const EnrollmentsPage: React.FC = () => {
                 )}
               </FormControl>
 
-              {/* Student Details */}
+              {/* Student Details Card */}
               {studentDetails && (
-                <Card sx={{ mt: 2, bgcolor: '#e3f2fd', border: '1px solid #90caf9' }}>
-                  <CardContent sx={{ py: 1 }}>
-                    <Typography variant="body2">
-                      <strong>Student Details:</strong><br />
-                      Name: {studentDetails.name}<br />
-                      Program: {studentDetails.program} - Year {studentDetails.yearLevel}<br />
-                      Status: <Chip 
-                        label={studentDetails.status.toUpperCase()} 
-                        color={getStudentStatusColor(studentDetails.status)}
-                        size="small"
-                        sx={{ ml: 1 }}
-                      />
-                    </Typography>
-                  </CardContent>
-                </Card>
+                <Fade in={true}>
+                  <Card sx={{ mt: 2, bgcolor: alpha(theme.palette.info.main, 0.05), borderRadius: 2 }}>
+                    <CardContent sx={{ py: 1.5 }}>
+                      <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                        Student Details
+                      </Typography>
+                      <Grid container spacing={1}>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary">Name</Typography>
+                          <Typography variant="body2">{studentDetails.name}</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary">Program</Typography>
+                          <Typography variant="body2">{studentDetails.program} - Year {studentDetails.yearLevel}</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                          <Typography variant="caption" color="text.secondary">Status</Typography>
+                          <Chip 
+                            label={studentDetails.status.toUpperCase()} 
+                            color={getStudentStatusColor(studentDetails.status)}
+                            size="small"
+                            sx={{ mt: 0.5 }}
+                          />
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Fade>
               )}
 
-              {/* Current Enrollments */}
+              {/* Current Enrollments Card */}
               {studentEnrollments.length > 0 && (
-                <Card sx={{ mt: 2, bgcolor: '#e8f5e9', border: '1px solid #81c784' }}>
-                  <CardContent>
-                    <Typography variant="body2" gutterBottom>
-                      <strong>Currently Enrolled Subjects:</strong>
-                    </Typography>
-                    {studentEnrollments.map((enrollment, idx) => (
-                      <Box key={idx} sx={{ mt: 1, p: 1, bgcolor: 'white', borderRadius: 1 }}>
-                        <Typography variant="body2">
-                          <strong>{enrollment.subject_code}</strong> - {enrollment.subject_name}
-                          <br />
-                          <span style={{ fontSize: '0.8rem', color: 'gray' }}>
-                            Section: {enrollment.section_code} | Units: {enrollment.units} | Schedule: {enrollment.schedule} | Room: {enrollment.room}
-                          </span>
-                        </Typography>
-                      </Box>
-                    ))}
-                    <Box sx={{ mt: 2, pt: 1, borderTop: '1px solid #81c784' }}>
-                      <Typography variant="body2">
-                        <strong>Total Units: {totalUnits}</strong>
+                <Fade in={true}>
+                  <Card sx={{ mt: 2, bgcolor: alpha(theme.palette.success.main, 0.05), borderRadius: 2 }}>
+                    <CardContent>
+                      <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                        Currently Enrolled Subjects ({totalUnits} units total)
                       </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
+                      {studentEnrollments.map((enrollment, idx) => (
+                        <Box key={idx} sx={{ mt: 1, p: 1.5, bgcolor: 'background.paper', borderRadius: 1.5 }}>
+                          <Typography variant="body2" fontWeight="600">
+                            {enrollment.subject_code} - {enrollment.subject_name}
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 0.5 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Section: {enrollment.section_code}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Units: {enrollment.units}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Schedule: {enrollment.schedule}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </Fade>
               )}
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
               {/* Section Selection */}
-              <FormControl fullWidth margin="normal" error={!!errors.section}>
+              <FormControl fullWidth error={!!errors.section}>
                 <InputLabel>Select Section</InputLabel>
                 <Select
                   value={selectedSection}
@@ -496,13 +618,17 @@ const EnrollmentsPage: React.FC = () => {
                   }}
                   label="Select Section"
                   disabled={loading || !selectedStudent}
+                  sx={{ borderRadius: 2 }}
                 >
                   <MenuItem value="">
                     <em>Choose a section</em>
                   </MenuItem>
                   {sections.map((section: Section) => (
                     <MenuItem key={section.id} value={section.id.toString()}>
-                      {section.subject_code} - {section.section_code} ({section.available_slots} slots available)
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <ClassIcon fontSize="small" />
+                        {section.subject_code} - {section.section_code} ({section.available_slots} slots available)
+                      </Box>
                     </MenuItem>
                   ))}
                 </Select>
@@ -514,32 +640,59 @@ const EnrollmentsPage: React.FC = () => {
                 )}
               </FormControl>
 
-              {/* Section Details */}
+              {/* Section Details Card */}
               {sectionDetails && selectedStudent && (
-                <Card sx={{ mt: 2, bgcolor: '#fff3e0', border: '1px solid #ffb74d' }}>
-                  <CardContent>
-                    <Typography variant="body2">
-                      <strong>Section Details:</strong><br />
-                      Subject: {sectionDetails.subjectCode} - {sectionDetails.subjectName}<br />
-                      Section: {sectionDetails.sectionCode}<br />
-                      Schedule: {sectionDetails.schedule}<br />
-                      Room: {sectionDetails.room}<br />
-                      Semester: {sectionDetails.semester} | School Year: {sectionDetails.schoolYear}<br />
-                      Capacity: {sectionDetails.currentCount} / {sectionDetails.maxCapacity} students<br />
-                      Available Slots: <strong>{sectionDetails.availableSlots}</strong>
-                    </Typography>
-                  </CardContent>
-                </Card>
+                <Fade in={true}>
+                  <Card sx={{ mt: 2, bgcolor: alpha(theme.palette.warning.main, 0.05), borderRadius: 2 }}>
+                    <CardContent>
+                      <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                        Section Details
+                      </Typography>
+                      <Grid container spacing={1}>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary">Subject</Typography>
+                          <Typography variant="body2">{sectionDetails.subjectCode} - {sectionDetails.subjectName}</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary">Section</Typography>
+                          <Typography variant="body2">{sectionDetails.sectionCode}</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary">Schedule</Typography>
+                          <Typography variant="body2">{sectionDetails.schedule}</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary">Room</Typography>
+                          <Typography variant="body2">{sectionDetails.room}</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary">Capacity</Typography>
+                          <Typography variant="body2">{sectionDetails.currentCount} / {sectionDetails.maxCapacity}</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary">Available Slots</Typography>
+                          <Typography variant="body2" fontWeight="bold" color="success.main">
+                            {sectionDetails.availableSlots}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Fade>
               )}
 
-              {/* Enrollment Summary */}
+              {/* Enrollment Summary Alert */}
               {selectedStudent && selectedSection && !errors.section && (
-                <Alert severity="info" sx={{ mt: 2 }}>
+                <Alert 
+                  severity="info" 
+                  sx={{ mt: 2, borderRadius: 2 }}
+                  icon={<Info />}
+                >
                   <Typography variant="body2">
-                    <strong>Enrollment Summary:</strong><br />
-                    Student will be enrolled in {sectionDetails?.subjectCode} - {sectionDetails?.sectionCode}
+                    <strong>Enrollment Summary</strong><br />
+                    Student will be enrolled in <strong>{sectionDetails?.subjectCode} - {sectionDetails?.sectionCode}</strong>
                     {sectionDetails && ` (${sectionDetails.subjectName})`}<br />
-                    Total units after enrollment: <strong>{totalUnits + (sectionDetails?.subjectCode ? 0 : 0)}</strong>
+                    <strong>Total units after enrollment:</strong> {totalUnits + (sectionDetails?.subjectCode ? 0 : 0)}
                   </Typography>
                 </Alert>
               )}
@@ -547,8 +700,12 @@ const EnrollmentsPage: React.FC = () => {
           </Grid>
         </DialogContent>
         
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={loading}>
+        <DialogActions sx={{ p: 2.5, borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+          <Button 
+            onClick={handleCloseDialog} 
+            disabled={loading}
+            sx={{ borderRadius: 2, textTransform: 'none' }}
+          >
             Cancel
           </Button>
           <Button 
@@ -556,12 +713,14 @@ const EnrollmentsPage: React.FC = () => {
             variant="contained" 
             disabled={isEnrollButtonDisabled}
             startIcon={loading ? <CircularProgress size={20} /> : <School />}
+            sx={{ borderRadius: 2, textTransform: 'none', px: 3 }}
           >
             {loading ? 'Enrolling...' : 'Enroll Student'}
           </Button>
         </DialogActions>
       </Dialog>
 
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
@@ -573,6 +732,7 @@ const EnrollmentsPage: React.FC = () => {
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           variant="filled"
           elevation={6}
+          sx={{ borderRadius: 2 }}
         >
           {snackbar.message}
         </Alert>

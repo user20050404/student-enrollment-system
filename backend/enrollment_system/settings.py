@@ -59,7 +59,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'student_enrollment_db',
         'USER': 'postgres',
-        'PASSWORD': 'JE-KTJ69x',
+        'PASSWORD': 'kent2005',
         'HOST': 'localhost',  # Or the IP/hostname of your PostgreSQL server
         'PORT': '5432',  # The default port for PostgreSQL
     }
