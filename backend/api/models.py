@@ -1,6 +1,39 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
+from django.contrib.auth.models import User
+from datetime import date
+
+# ========== USER PROFILE MODEL ==========
+class UserProfile(models.Model):
+    ROLE_CHOICES = [
+        ('admin', 'Administrator'),
+        ('student', 'Student'),
+        ('teacher', 'Teacher'),
+        ('registrar', 'Registrar'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student')
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    birth_date = models.DateField(blank=True, null=True)
+    age = models.IntegerField(blank=True, null=True)
+    student = models.ForeignKey('Student', on_delete=models.SET_NULL, blank=True, null=True, related_name='user_profiles')
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.role}"
+    
+    def save(self, *args, **kwargs):
+        # Calculate age only if birth_date is provided and valid
+        if self.birth_date:
+            try:
+                today = date.today()
+                self.age = today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
+            except Exception:
+                self.age = None
+        super().save(*args, **kwargs)
+
 
 class Subject(models.Model):
     STATUS_CHOICES = [
@@ -17,6 +50,7 @@ class Subject(models.Model):
     
     def __str__(self):
         return f"{self.subject_code} - {self.subject_name}"
+
 
 class Student(models.Model):
     YEAR_LEVEL_CHOICES = [
@@ -52,7 +86,6 @@ class Student(models.Model):
         return f"{self.student_number} - {self.last_name}, {self.first_name}"
     
     def get_total_units(self, semester=None, school_year=None):
-        """Calculate total enrolled units"""
         enrollments = self.enrollments.filter(status='enrolled')
         if semester:
             enrollments = enrollments.filter(section__semester=semester)
@@ -63,8 +96,8 @@ class Student(models.Model):
         return total
     
     def get_enrolled_subjects(self):
-        """Get list of enrolled subjects"""
         return self.enrollments.filter(status='enrolled').select_related('section__subject')
+
 
 class Section(models.Model):
     STATUS_CHOICES = [
@@ -102,6 +135,7 @@ class Section(models.Model):
     def available_slots(self):
         return self.max_capacity - self.current_count
 
+
 class Enrollment(models.Model):
     STATUS_CHOICES = [
         ('enrolled', 'Enrolled'),
@@ -118,11 +152,9 @@ class Enrollment(models.Model):
         unique_together = ['student', 'section']
     
     def clean(self):
-        # Check if section is full
         if self.section.current_count >= self.section.max_capacity:
             raise ValidationError("Section is already full")
         
-        # Check if student is already enrolled in the same subject
         existing_enrollment = Enrollment.objects.filter(
             student=self.student,
             section__subject=self.section.subject,
@@ -136,14 +168,13 @@ class Enrollment(models.Model):
             )
     
     def save(self, *args, **kwargs):
-        if not self.pk:  # New enrollment
+        if not self.pk:
             if self.section.current_count >= self.section.max_capacity:
                 raise ValidationError("Cannot enroll: Section is full")
             self.section.current_count += 1
             self.section.save()
         super().save(*args, **kwargs)
         
-        # Update student status if not already enrolled
         if self.student.status != 'enrolled':
             self.student.status = 'enrolled'
             self.student.save()
@@ -153,13 +184,13 @@ class Enrollment(models.Model):
         self.section.save()
         super().delete(*args, **kwargs)
         
-        # Update student status if no enrollments left
         if self.student.enrollments.filter(status='enrolled').count() == 0:
             self.student.status = 'not_enrolled'
             self.student.save()
     
     def __str__(self):
         return f"{self.student.student_number} - {self.section.section_code}"
+
 
 class EnrollmentSummary(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='summaries')

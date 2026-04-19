@@ -9,6 +9,12 @@ const api = axios.create({
   },
 });
 
+// Add token to requests if it exists
+const token = localStorage.getItem('access_token');
+if (token) {
+  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+}
+
 // Define interfaces for API responses
 export interface Subject {
   id: number;
@@ -80,7 +86,56 @@ export interface EnrollmentSummary {
   last_updated: string;
 }
 
-// Subjects API
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  date_joined: string;
+}
+
+export interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  full_name: string;
+  role: string;
+  phone: string;
+  address: string;
+  birth_date: string;
+  age: number;
+}
+
+// ========== AUTHENTICATION API ==========
+export const authApi = {
+  register: async (userData: any): Promise<any> => {
+    // userData should contain: username, email, password, confirm_password
+    const response = await api.post('/auth/register/', userData);
+    return response.data;
+  },
+  login: async (username: string, password: string): Promise<any> => {
+    const response = await api.post('/auth/login/', { username, password });
+    return response.data;
+  },
+  logout: async (refresh: string): Promise<void> => {
+    await api.post('/auth/logout/', { refresh });
+  },
+  getProfile: async (): Promise<UserProfile> => {
+    const response = await api.get<UserProfile>('/auth/profile/');
+    return response.data;
+  },
+  updateProfile: async (data: any): Promise<UserProfile> => {
+    const response = await api.put<UserProfile>('/auth/profile/', data);
+    return response.data;
+  },
+  changePassword: async (old_password: string, new_password: string, confirm_password: string): Promise<any> => {
+    const response = await api.post('/auth/change-password/', { old_password, new_password, confirm_password });
+    return response.data;
+  },
+};
+
+// ========== SUBJECTS API ==========
 export const subjectsApi = {
   getAll: async (): Promise<Subject[]> => {
     const response = await api.get<Subject[]>('/subjects/');
@@ -103,7 +158,7 @@ export const subjectsApi = {
   },
 };
 
-// Students API
+// ========== STUDENTS API ==========
 export const studentsApi = {
   getAll: async (): Promise<Student[]> => {
     const response = await api.get<Student[]>('/students/');
@@ -137,7 +192,7 @@ export const studentsApi = {
     return response.data;
   },
   getTotalUnits: async (id: number, semester?: string, school_year?: string): Promise<{ total_units: number }> => {
-    let url = `/students/${id}/total_units/`;
+    let url = `/students/${id}/total-units/`;
     const params = new URLSearchParams();
     if (semester) params.append('semester', semester);
     if (school_year) params.append('school_year', school_year);
@@ -147,7 +202,7 @@ export const studentsApi = {
   },
 };
 
-// Sections API
+// ========== SECTIONS API ==========
 export const sectionsApi = {
   getAll: async (): Promise<Section[]> => {
     const response = await api.get<Section[]>('/sections/');
@@ -174,7 +229,7 @@ export const sectionsApi = {
   },
 };
 
-// Enrollments API
+// ========== ENROLLMENTS API ==========
 export const enrollmentsApi = {
   getAll: async (): Promise<Enrollment[]> => {
     const response = await api.get<Enrollment[]>('/enrollments/');
@@ -189,7 +244,7 @@ export const enrollmentsApi = {
   },
 };
 
-// Summaries API
+// ========== SUMMARIES API ==========
 export const summariesApi = {
   getAll: async (): Promise<EnrollmentSummary[]> => {
     const response = await api.get<EnrollmentSummary[]>('/summaries/');

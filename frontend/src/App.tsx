@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -24,6 +24,7 @@ import {
   Slide,
   Fade,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import {
   School,
@@ -51,6 +52,9 @@ import SectionsPage from './pages/SectionsPage';
 import EnrollmentsPage from './pages/EnrollmentsPage';
 import DashboardPage from './pages/DashboardPage';
 import StudentDetailsPage from './pages/StudentDetailsPage';
+import LoginPage from './pages/LoginPage';
+import ProfilePage from './pages/ProfilePage';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Custom scroll behavior
 interface HideOnScrollProps {
@@ -145,26 +149,48 @@ const tabs = [
   { label: 'Enrollments', icon: <School />, path: '/enrollments', color: '#0288d1' },
 ];
 
+// Protected Route Component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
 // Create a separate component for the main app content that uses useLocation
 function AppContent() {
   const location = useLocation();
+  const { user, profile, logout, isAuthenticated } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Update tab based on current path
+  // Update tab based on current path (only when authenticated)
   useEffect(() => {
-    const currentPath = location.pathname;
-    const tabIndex = tabs.findIndex(tab => {
-      if (tab.path === '/') return currentPath === '/';
-      return currentPath.startsWith(tab.path);
-    });
-    if (tabIndex !== -1) {
-      setCurrentTab(tabIndex);
+    if (isAuthenticated) {
+      const currentPath = location.pathname;
+      const tabIndex = tabs.findIndex(tab => {
+        if (tab.path === '/') return currentPath === '/';
+        return currentPath.startsWith(tab.path);
+      });
+      if (tabIndex !== -1) {
+        setCurrentTab(tabIndex);
+      }
     }
-  }, [location]);
+  }, [location, isAuthenticated]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
@@ -194,6 +220,11 @@ function AppContent() {
     setDarkMode(!darkMode);
   };
 
+  const handleLogout = () => {
+    logout();
+    handleMenuClose();
+  };
+
   // Mock notifications
   const notifications = [
     { id: 1, message: 'New student enrolled', time: '5 min ago', type: 'success', icon: <CheckCircle fontSize="small" /> },
@@ -219,6 +250,19 @@ function AppContent() {
       mode: darkMode ? 'dark' : 'light',
     },
   });
+
+  // If not authenticated, show login page without layout
+  if (!isAuthenticated) {
+    return (
+      <ThemeProvider theme={currentTheme}>
+        <CssBaseline />
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider theme={currentTheme}>
@@ -326,7 +370,7 @@ function AppContent() {
                         bgcolor: currentTheme.palette.primary.main,
                       }}
                     >
-                      <AccountCircle />
+                      {profile?.full_name?.[0] || user?.username?.[0] || 'U'}
                     </Avatar>
                   </IconButton>
                 </Tooltip>
@@ -425,19 +469,19 @@ function AppContent() {
         >
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar sx={{ width: 48, height: 48, bgcolor: currentTheme.palette.primary.main }}>
-              <Person />
+              {profile?.full_name?.[0] || user?.username?.[0] || 'U'}
             </Avatar>
             <Box>
               <Typography variant="subtitle1" fontWeight="600">
-                Admin User
+                {profile?.full_name || user?.username}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                admin@university.edu
+                {user?.email}
               </Typography>
             </Box>
           </Box>
           <Divider />
-          <MenuItem onClick={handleMenuClose}>
+          <MenuItem component={Link} to="/profile" onClick={handleMenuClose}>
             <ListItemIcon><Person fontSize="small" /></ListItemIcon>
             <ListItemText>My Profile</ListItemText>
           </MenuItem>
@@ -450,13 +494,13 @@ function AppContent() {
             <ListItemText>Help & Support</ListItemText>
           </MenuItem>
           <Divider />
-          <MenuItem onClick={handleMenuClose} sx={{ color: currentTheme.palette.error.main }}>
+          <MenuItem onClick={handleLogout} sx={{ color: currentTheme.palette.error.main }}>
             <ListItemIcon><Logout fontSize="small" sx={{ color: currentTheme.palette.error.main }} /></ListItemIcon>
             <ListItemText>Logout</ListItemText>
           </MenuItem>
         </Menu>
 
-        {/* Main Content */}
+        {/* Main Content - Protected Routes */}
         <Container 
           maxWidth="xl" 
           sx={{ 
@@ -469,12 +513,13 @@ function AppContent() {
           <Fade in={true} timeout={500}>
             <Box>
               <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/students" element={<StudentsPage />} />
-                <Route path="/students/:id" element={<StudentDetailsPage />} />
-                <Route path="/subjects" element={<SubjectsPage />} />
-                <Route path="/sections" element={<SectionsPage />} />
-                <Route path="/enrollments" element={<EnrollmentsPage />} />
+                <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                <Route path="/students" element={<ProtectedRoute><StudentsPage /></ProtectedRoute>} />
+                <Route path="/students/:id" element={<ProtectedRoute><StudentDetailsPage /></ProtectedRoute>} />
+                <Route path="/subjects" element={<ProtectedRoute><SubjectsPage /></ProtectedRoute>} />
+                <Route path="/sections" element={<ProtectedRoute><SectionsPage /></ProtectedRoute>} />
+                <Route path="/enrollments" element={<ProtectedRoute><EnrollmentsPage /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               </Routes>
             </Box>
           </Fade>
@@ -504,11 +549,13 @@ function AppContent() {
   );
 }
 
-// Main App component with Router wrapper
+// Main App component with Router wrapper and AuthProvider
 function App() {
   return (
     <Router>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </Router>
   );
 }
