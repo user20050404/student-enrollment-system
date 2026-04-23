@@ -15,7 +15,8 @@ if (token) {
   api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
 
-// Define interfaces for API responses
+// ========== TYPE DEFINITIONS ==========
+
 export interface Subject {
   id: number;
   subject_code: string;
@@ -107,10 +108,10 @@ export interface UserProfile {
   age: number;
 }
 
-// ========== AUTHENTICATION API ==========
+// ========== AUTHENTICATION API (User App) ==========
+// These endpoints go to /api/auth/ which is handled by the user app
 export const authApi = {
   register: async (userData: any): Promise<any> => {
-    // userData should contain: username, email, password, confirm_password
     const response = await api.post('/auth/register/', userData);
     return response.data;
   },
@@ -130,7 +131,11 @@ export const authApi = {
     return response.data;
   },
   changePassword: async (old_password: string, new_password: string, confirm_password: string): Promise<any> => {
-    const response = await api.post('/auth/change-password/', { old_password, new_password, confirm_password });
+    const response = await api.post('/auth/change-password/', { 
+      old_password, 
+      new_password, 
+      confirm_password 
+    });
     return response.data;
   },
 };

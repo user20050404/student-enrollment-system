@@ -15,27 +15,14 @@ from .views import (
     EnrollmentRetrieveUpdateDestroyView,
     EnrollmentSummaryListCreateView,
     EnrollmentSummaryRetrieveUpdateDestroyView,
-    # Authentication Views
-    RegisterView,
-    LoginView,
-    LogoutView,
-    ProfileView,
-    ChangePasswordView,
 )
 
 urlpatterns = [
-    # ========== AUTHENTICATION URLs ==========
-    path('auth/register/', RegisterView.as_view(), name='register'),
-    path('auth/login/', LoginView.as_view(), name='login'),
-    path('auth/logout/', LogoutView.as_view(), name='logout'),
-    path('auth/profile/', ProfileView.as_view(), name='profile'),
-    path('auth/change-password/', ChangePasswordView.as_view(), name='change-password'),
-    
-    # ========== SUBJECTS ==========
+    # SUBJECTS
     path('subjects/', SubjectListCreateView.as_view(), name='subject-list-create'),
     path('subjects/<int:pk>/', SubjectRetrieveUpdateDestroyView.as_view(), name='subject-detail'),
     
-    # ========== STUDENTS ==========
+    # STUDENTS
     path('students/', StudentListCreateView.as_view(), name='student-list-create'),
     path('students/<int:pk>/', StudentRetrieveUpdateDestroyView.as_view(), name='student-detail'),
     path('students/<int:pk>/enrollments/', StudentEnrollmentsView.as_view(), name='student-enrollments'),
@@ -43,16 +30,16 @@ urlpatterns = [
     path('students/<int:pk>/total-units/', StudentTotalUnitsView.as_view(), name='student-total-units'),
     path('students/<int:pk>/enrolled-subjects/', StudentEnrolledSubjectsView.as_view(), name='student-enrolled-subjects'),
     
-    # ========== SECTIONS ==========
+    # SECTIONS
     path('sections/', SectionListCreateView.as_view(), name='section-list-create'),
     path('sections/<int:pk>/', SectionRetrieveUpdateDestroyView.as_view(), name='section-detail'),
     path('sections/<int:pk>/enrollments/', SectionEnrollmentsView.as_view(), name='section-enrollments'),
     
-    # ========== ENROLLMENTS ==========
+    # ENROLLMENTS
     path('enrollments/', EnrollmentListCreateView.as_view(), name='enrollment-list-create'),
     path('enrollments/<int:pk>/', EnrollmentRetrieveUpdateDestroyView.as_view(), name='enrollment-detail'),
     
-    # ========== ENROLLMENT SUMMARIES ==========
+    # ENROLLMENT SUMMARIES
     path('summaries/', EnrollmentSummaryListCreateView.as_view(), name='summary-list-create'),
     path('summaries/<int:pk>/', EnrollmentSummaryRetrieveUpdateDestroyView.as_view(), name='summary-detail'),
 ]
