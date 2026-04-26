@@ -42,8 +42,34 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Profile picture states
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [profilePreview, setProfilePreview] = useState<string>('');
+  const [uploadError, setUploadError] = useState('');
+  
   const { login, register } = useAuth();
   const navigate = useNavigate();
+
+  // File validation and handling
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setUploadError('Please select an image file');
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setUploadError('File size must be less than 5MB');
+        return;
+      }
+      setUploadError('');
+      setProfilePicture(file);
+      setProfilePreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,19 +126,28 @@ const LoginPage: React.FC = () => {
         await login(formData.username, formData.password);
         navigate('/');
       } else {
-        // Make sure to send confirm_password field
-        const registerData = {
-          username: formData.username.trim(),
-          password: formData.password,
-          confirm_password: formData.confirmPassword,  // Important: send as confirm_password
-          email: formData.email.trim(),
-          first_name: formData.first_name?.trim() || '',
-          last_name: formData.last_name?.trim() || '',
-          role: 'student',
-        };
+        // Create FormData for registration with profile picture
+        const registerFormData = new FormData();
+        registerFormData.append('username', formData.username.trim());
+        registerFormData.append('password', formData.password);
+        registerFormData.append('confirm_password', formData.confirmPassword);
+        registerFormData.append('email', formData.email.trim());
+        registerFormData.append('first_name', formData.first_name?.trim() || '');
+        registerFormData.append('last_name', formData.last_name?.trim() || '');
+        registerFormData.append('role', 'student');
         
-        console.log('Sending registration data:', registerData);
-        await register(registerData);
+        if (profilePicture) {
+          registerFormData.append('profile_picture', profilePicture);
+        }
+        
+        console.log('Sending registration data with profile picture:', {
+          username: formData.username,
+          email: formData.email,
+          hasProfilePicture: !!profilePicture
+        });
+        
+        // Note: You need to update your register function in AuthContext to accept FormData
+        await register(registerFormData);
         navigate('/');
       }
     } catch (err: any) {
@@ -161,6 +196,9 @@ const LoginPage: React.FC = () => {
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setError('');
+    setUploadError('');
+    setProfilePicture(null);
+    setProfilePreview('');
     setFormData({
       username: '',
       password: '',
@@ -361,6 +399,56 @@ const LoginPage: React.FC = () => {
                       },
                     }}
                   />
+                </Box>
+
+                {/* Profile Picture Upload Section */}
+                <Box sx={{ mt: 2, mb: 2 }}>
+                  <Typography variant="body2" gutterBottom sx={{ fontWeight: 500 }}>
+                    Profile Picture (Optional)
+                  </Typography>
+                  <input
+                    accept="image/*"
+                    type="file"
+                    id="profile-picture"
+                    style={{ display: 'none' }}
+                    onChange={handleFileChange}
+                    disabled={loading}
+                  />
+                  <label htmlFor="profile-picture">
+                    <Button 
+                      variant="outlined" 
+                      component="span"
+                      disabled={loading}
+                      sx={{
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        '&:hover': {
+                          transform: 'translateY(-1px)',
+                        },
+                        transition: 'all 0.3s',
+                      }}
+                    >
+                      Choose Picture
+                    </Button>
+                  </label>
+                  {uploadError && (
+                    <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1 }}>
+                      {uploadError}
+                    </Typography>
+                  )}
+                  {profilePreview && (
+                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                      <Avatar 
+                        src={profilePreview} 
+                        sx={{ 
+                          width: 80, 
+                          height: 80, 
+                          border: `3px solid ${theme.palette.primary.main}`,
+                          boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                        }} 
+                      />
+                    </Box>
+                  )}
                 </Box>
               </>
             )}
