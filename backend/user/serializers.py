@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import UserProfile
+from .utils import send_activation_email
+import uuid
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -25,6 +27,28 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.username
 
 
+class ActivateAccountSerializer(serializers.Serializer):
+    token = serializers.UUIDField()
+    
+    def validate_token(self, value):
+        try:
+            profile = UserProfile.objects.get(email_verification_token=value)
+            if profile.email_verified:
+                raise serializers.ValidationError("Account already activated")
+            return value
+        except UserProfile.DoesNotExist:
+            raise serializers.ValidationError("Invalid activation token")
+    
+    def activate(self):
+        profile = UserProfile.objects.get(email_verification_token=self.validated_data['token'])
+        profile.email_verified = True
+        profile.is_active = True
+        profile.user.is_active = True
+        profile.user.save()
+        profile.save()
+        return profile.user
+
+
 class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     email = serializers.EmailField()
@@ -32,6 +56,7 @@ class RegisterSerializer(serializers.Serializer):
     confirm_password = serializers.CharField(write_only=True)
     first_name = serializers.CharField(required=False, allow_blank=True, default='')
     last_name = serializers.CharField(required=False, allow_blank=True, default='')
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
     
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
@@ -51,18 +76,29 @@ class RegisterSerializer(serializers.Serializer):
     def create(self, validated_data):
         # Remove confirm_password
         validated_data.pop('confirm_password')
+        profile_picture = validated_data.pop('profile_picture', None)
         
-        # IMPORTANT: This is the corrected line - dot between objects and create_user
+        # Create user (inactive until email verification)
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
             first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', '')
+            last_name=validated_data.get('last_name', ''),
+            is_active=False
         )
         
         # Create user profile
-        UserProfile.objects.create(user=user)
+        profile = UserProfile.objects.create(
+            user=user,
+            profile_picture=profile_picture,
+            email_verification_token=uuid.uuid4(),
+            email_verified=False,
+            is_active=False
+        )
+        
+        # Send activation email
+        send_activation_email(user, profile)
         
         return user
 
@@ -78,12 +114,16 @@ class LoginSerializer(serializers.Serializer):
         user = authenticate(username=data['username'], password=data['password'])
         if not user:
             raise serializers.ValidationError("Invalid username or password")
-        if not user.is_active:
-            raise serializers.ValidationError("User account is disabled")
+        
+        # Check if user has verified their email
+        try:
+            profile = UserProfile.objects.get(user=user)
+            if not profile.email_verified:
+                raise serializers.ValidationError("Please verify your email before logging in")
+        except UserProfile.DoesNotExist:
+            raise serializers.ValidationError("User profile not found")
         
         refresh = RefreshToken.for_user(user)
-        
-        profile, created = UserProfile.objects.get_or_create(user=user)
         
         return {
             'refresh': str(refresh),

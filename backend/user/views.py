@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer, ActivateAccountSerializer
 from .models import UserProfile
+from .utils import send_activation_email
 
 
 class RegisterView(APIView):
@@ -20,26 +21,11 @@ class RegisterView(APIView):
         if serializer.is_valid():
             try:
                 user = serializer.save()
-                refresh = RefreshToken.for_user(user)
-                profile = UserProfile.objects.get(user=user)
                 
+                # Return success message instead of auto-login
                 return Response({
-                    'message': 'Registration successful',
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                    'user': {
-                        'id': user.id,
-                        'username': user.username,
-                        'email': user.email,
-                        'first_name': user.first_name,
-                        'last_name': user.last_name,
-                    },
-                    'profile': {
-                        'role': profile.role,
-                        'phone': profile.phone or '',
-                        'address': profile.address or '',
-                        'birth_date': profile.birth_date if profile.birth_date else None,
-                    }
+                    'message': 'Registration successful. Please check your email to activate your account.',
+                    'email': user.email,
                 }, status=status.HTTP_201_CREATED)
             except Exception as e:
                 print("ERROR:", str(e))
@@ -50,6 +36,27 @@ class RegisterView(APIView):
             print("SERIALIZER ERRORS:", serializer.errors)
             return Response({
                 'error': 'Validation failed',
+                'details': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ActivateAccountView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = ActivateAccountSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                user = serializer.activate()
+                return Response({
+                    'message': 'Account activated successfully. You can now log in.',
+                    'username': user.username
+                }, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({
+                'error': 'Activation failed',
                 'details': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
