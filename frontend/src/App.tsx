@@ -54,6 +54,7 @@ import DashboardPage from './pages/DashboardPage';
 import StudentDetailsPage from './pages/StudentDetailsPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
+import ActivatePage from './pages/ActivatePage'; // ADD THIS IMPORT
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Custom scroll behavior
@@ -258,6 +259,7 @@ function AppContent() {
         <CssBaseline />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/activate/:token" element={<ActivatePage />} /> {/* ADD THIS ROUTE */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </ThemeProvider>
