@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer
+from .serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer, ActivateAccountSerializer
 from .models import UserProfile
 
 
@@ -142,3 +142,17 @@ class ChangePasswordView(APIView):
         user.save()
         
         return Response({'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
+
+
+class ActivateAccountView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = ActivateAccountSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.activate()
+            return Response({
+                'message': 'Account activated successfully. You can now login.',
+                'username': user.username
+            }, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

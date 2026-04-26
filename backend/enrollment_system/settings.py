@@ -20,9 +20,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'cloudinary',           
+    'cloudinary_storage',   
     'api',
-    'user', 
+    'user',
 ]
 
 MIDDLEWARE = [
@@ -127,3 +130,21 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
+
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'dhcszgtm5',      
+    'API_KEY': '897876677597466',            
+    'API_SECRET': 'p0BVdy0Kri3CUU8a8LYsUoLid6o',     
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'kd.aligsao@gmail.com'      
+EMAIL_HOST_PASSWORD = 'qfitqfyccmkyqxpb'     
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'kd.aligsao@gmail.com'   
+FRONTEND_URL = 'http://localhost:3000'
