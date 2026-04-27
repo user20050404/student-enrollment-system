@@ -10,7 +10,7 @@ import {
   Alert,
   Avatar,
 } from '@mui/material';
-import { CheckCircle, Error, School } from '@mui/icons-material';
+import { CheckCircle, Error } from '@mui/icons-material';
 import api from '../services/api';
 
 const ActivatePage: React.FC = () => {
@@ -37,7 +37,7 @@ const ActivatePage: React.FC = () => {
         navigate('/login');
       }, 3000);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Activation failed. Invalid or expired token.');
+      setError(err.response?.data?.message || err.response?.data?.error || 'Activation failed. Invalid or expired token.');
       setLoading(false);
     }
   };

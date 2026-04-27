@@ -20,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 const ProfilePage: React.FC = () => {
   const { user, profile, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [formData, setFormData] = useState({
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
@@ -72,24 +73,52 @@ const ProfilePage: React.FC = () => {
     return (first + last).toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U';
   };
 
+  // Get profile picture URL from profile data
+  const getProfilePictureUrl = () => {
+    if (profile && (profile as any).profile_picture) {
+      const url = (profile as any).profile_picture;
+      if (url.startsWith('http')) {
+        return url;
+      }
+      return `http://localhost:8000${url}`;
+    }
+    return null;
+  };
+
+  const profilePictureUrl = getProfilePictureUrl();
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Grid container spacing={4}>
         {/* Profile Header Card */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ p: 3, borderRadius: 3, textAlign: 'center' }}>
-            <Avatar
-              sx={{
-                width: 120,
-                height: 120,
-                mx: 'auto',
-                mb: 2,
-                bgcolor: 'primary.main',
-                fontSize: 48,
-              }}
-            >
-              {getInitials()}
-            </Avatar>
+            {profilePictureUrl && !imageError ? (
+              <Avatar
+                src={profilePictureUrl}
+                onError={() => setImageError(true)}
+                sx={{
+                  width: 120,
+                  height: 120,
+                  mx: 'auto',
+                  mb: 2,
+                  border: (theme) => `3px solid ${theme.palette.primary.main}`,
+                }}
+              />
+            ) : (
+              <Avatar
+                sx={{
+                  width: 120,
+                  height: 120,
+                  mx: 'auto',
+                  mb: 2,
+                  bgcolor: 'primary.main',
+                  fontSize: 48,
+                }}
+              >
+                {getInitials()}
+              </Avatar>
+            )}
             <Typography variant="h5" fontWeight="700">
               {profile?.full_name || user?.username}
             </Typography>
@@ -222,7 +251,6 @@ const ProfilePage: React.FC = () => {
               </Grid>
             </Grid>
 
-            {/* Age Display */}
             {profile?.age && (
               <Box sx={{ mt: 3, p: 2, bgcolor: 'info.light', borderRadius: 2 }}>
                 <Typography variant="body2">
@@ -248,4 +276,4 @@ const ProfilePage: React.FC = () => {
   );
 };
 
-export default ProfilePage; 
+export default ProfilePage;

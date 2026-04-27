@@ -4,9 +4,7 @@ const API_BASE_URL = 'http://localhost:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // REMOVE default Content-Type - let it be set per request
 });
 
 // Add token to requests if it exists
@@ -15,8 +13,23 @@ if (token) {
   api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
 
-// ========== TYPE DEFINITIONS ==========
+// Interceptor to set Content-Type based on request data
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  
+  // Only set Content-Type to JSON for non-FormData requests
+  if (!(config.data instanceof FormData)) {
+    config.headers['Content-Type'] = 'application/json';
+  }
+  // For FormData, let the browser set the Content-Type with boundary
+  
+  return config;
+});
 
+// ========== TYPE DEFINITIONS ==========
 export interface Subject {
   id: number;
   subject_code: string;
@@ -106,11 +119,12 @@ export interface UserProfile {
   address: string;
   birth_date: string;
   age: number;
+  profile_picture?: string | null;
 }
 
 // ========== AUTHENTICATION API (User App) ==========
-// These endpoints go to /api/auth/ which is handled by the user app
 export const authApi = {
+  // IMPORTANT: This now accepts FormData OR JSON
   register: async (userData: any): Promise<any> => {
     const response = await api.post('/auth/register/', userData);
     return response.data;

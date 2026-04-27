@@ -40,7 +40,6 @@ import {
   Info,
   DarkMode,
   LightMode,
-  AccountCircle,
   CheckCircle,
   Warning,
 } from '@mui/icons-material';
@@ -54,7 +53,7 @@ import DashboardPage from './pages/DashboardPage';
 import StudentDetailsPage from './pages/StudentDetailsPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
-import ActivatePage from './pages/ActivatePage'; // ADD THIS IMPORT
+import ActivatePage from './pages/ActivatePage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Custom scroll behavior
@@ -226,6 +225,18 @@ function AppContent() {
     handleMenuClose();
   };
 
+  // Helper function to get profile picture URL
+  const getProfilePictureUrl = () => {
+    if (profile?.profile_picture) {
+      let url = profile.profile_picture;
+      if (!url.startsWith('http')) {
+        url = `http://localhost:8000${url}`;
+      }
+      return url;
+    }
+    return null;
+  };
+
   // Mock notifications
   const notifications = [
     { id: 1, message: 'New student enrolled', time: '5 min ago', type: 'success', icon: <CheckCircle fontSize="small" /> },
@@ -259,12 +270,14 @@ function AppContent() {
         <CssBaseline />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/activate/:token" element={<ActivatePage />} /> {/* ADD THIS ROUTE */}
+          <Route path="/activate/:token" element={<ActivatePage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </ThemeProvider>
     );
   }
+
+  const profileImageUrl = getProfilePictureUrl();
 
   return (
     <ThemeProvider theme={currentTheme}>
@@ -363,16 +376,18 @@ function AppContent() {
                   </IconButton>
                 </Tooltip>
 
+                {/* Account Avatar with Profile Picture */}
                 <Tooltip title="Account">
                   <IconButton onClick={handleMenuOpen} size="small">
                     <Avatar 
+                      src={profileImageUrl || undefined}
                       sx={{ 
                         width: 32, 
                         height: 32,
-                        bgcolor: currentTheme.palette.primary.main,
+                        bgcolor: !profileImageUrl ? currentTheme.palette.primary.main : 'transparent',
                       }}
                     >
-                      {profile?.full_name?.[0] || user?.username?.[0] || 'U'}
+                      {!profileImageUrl && (profile?.full_name?.[0] || user?.username?.[0] || 'U')}
                     </Avatar>
                   </IconButton>
                 </Tooltip>
@@ -470,8 +485,15 @@ function AppContent() {
           anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         >
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ width: 48, height: 48, bgcolor: currentTheme.palette.primary.main }}>
-              {profile?.full_name?.[0] || user?.username?.[0] || 'U'}
+            <Avatar 
+              src={profileImageUrl || undefined}
+              sx={{ 
+                width: 48, 
+                height: 48,
+                bgcolor: !profileImageUrl ? currentTheme.palette.primary.main : 'transparent',
+              }}
+            >
+              {!profileImageUrl && (profile?.full_name?.[0] || user?.username?.[0] || 'U')}
             </Avatar>
             <Box>
               <Typography variant="subtitle1" fontWeight="600">

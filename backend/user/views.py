@@ -5,7 +5,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer, ActivateAccountSerializer
 from .models import UserProfile
-from .utils import send_activation_email
 
 
 class RegisterView(APIView):
@@ -21,8 +20,6 @@ class RegisterView(APIView):
         if serializer.is_valid():
             try:
                 user = serializer.save()
-                
-                # Return success message instead of auto-login
                 return Response({
                     'message': 'Registration successful. Please check your email to activate your account.',
                     'email': user.email,
@@ -149,17 +146,3 @@ class ChangePasswordView(APIView):
         user.save()
         
         return Response({'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
-
-
-class ActivateAccountView(APIView):
-    permission_classes = [AllowAny]
-    
-    def post(self, request):
-        serializer = ActivateAccountSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.activate()
-            return Response({
-                'message': 'Account activated successfully. You can now login.',
-                'username': user.username
-            }, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

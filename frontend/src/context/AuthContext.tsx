@@ -44,14 +44,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const fetchProfile = async () => {
     try {
       const data = await authApi.getProfile();
+      console.log('Profile data from API:', data); // Debug log
       setProfile(data);
       if (data) {
         setUser({
           id: data.id,
           username: data.username,
           email: data.email,
-          first_name: data.full_name.split(' ')[0] || '',
-          last_name: data.full_name.split(' ')[1] || '',
+          first_name: data.full_name?.split(' ')[0] || '',
+          last_name: data.full_name?.split(' ')[1] || '',
           date_joined: new Date().toISOString(),
         });
       }
@@ -76,22 +77,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await fetchProfile();
   };
 
-  const register = async (userData: any) => {
+  const register = async (formData: FormData) => {
     try {
-      const data = await authApi.register(userData);
-      const { access, refresh } = data;
-      
-      localStorage.setItem('access_token', access);
-      localStorage.setItem('refresh_token', refresh);
-      api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-      
-      if (data.user) {
-        setUser(data.user);
-      }
-      
-      await fetchProfile();
+      const response = await authApi.register(formData);
+      console.log("Registration success:", response);
+      return response;
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
       throw error;
     }
   };

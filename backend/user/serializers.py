@@ -18,13 +18,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
     full_name = serializers.SerializerMethodField()
+    profile_picture = serializers.SerializerMethodField()
     
     class Meta:
         model = UserProfile
-        fields = ['id', 'user', 'username', 'email', 'full_name', 'role', 'phone', 'address', 'birth_date', 'age']
+        fields = ['id', 'user', 'username', 'email', 'full_name', 'role', 'phone', 
+                  'address', 'birth_date', 'age', 'profile_picture']
     
     def get_full_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.username
+    
+    def get_profile_picture(self, obj):
+        if obj.profile_picture:
+            return obj.profile_picture.url
+        return None
 
 
 class ActivateAccountSerializer(serializers.Serializer):
@@ -74,11 +81,9 @@ class RegisterSerializer(serializers.Serializer):
         return data
     
     def create(self, validated_data):
-        # Remove confirm_password
         validated_data.pop('confirm_password')
         profile_picture = validated_data.pop('profile_picture', None)
         
-        # Create user (inactive until email verification)
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -88,7 +93,6 @@ class RegisterSerializer(serializers.Serializer):
             is_active=False
         )
         
-        # Create user profile
         profile = UserProfile.objects.create(
             user=user,
             profile_picture=profile_picture,
@@ -97,7 +101,7 @@ class RegisterSerializer(serializers.Serializer):
             is_active=False
         )
         
-        # Send activation email
+        # SEND ACTIVATION EMAIL
         send_activation_email(user, profile)
         
         return user
@@ -115,11 +119,10 @@ class LoginSerializer(serializers.Serializer):
         if not user:
             raise serializers.ValidationError("Invalid username or password")
         
-        # Check if user has verified their email
         try:
             profile = UserProfile.objects.get(user=user)
             if not profile.email_verified:
-                raise serializers.ValidationError("Please verify your email before logging in")
+                raise serializers.ValidationError("Please verify your email before logging in. Check your inbox for the activation link.")
         except UserProfile.DoesNotExist:
             raise serializers.ValidationError("User profile not found")
         

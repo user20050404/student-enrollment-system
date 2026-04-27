@@ -65,7 +65,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'student_enrollment_db',
         'USER': 'postgres',
-        'PASSWORD': 'kent2005',
+        'PASSWORD': 'JE-KTJ69x',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -148,3 +148,6 @@ EMAIL_HOST_PASSWORD = 'qfitqfyccmkyqxpb'
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'kd.aligsao@gmail.com'   
 FRONTEND_URL = 'http://localhost:3000'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

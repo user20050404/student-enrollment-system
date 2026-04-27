@@ -19,7 +19,6 @@ def send_activation_email(user, profile):
     
     text_content = strip_tags(html_content)
     
-
     email = EmailMultiAlternatives(
         subject,
         text_content,
@@ -27,4 +26,12 @@ def send_activation_email(user, profile):
         [user.email]
     )
     email.attach_alternative(html_content, "text/html")
-    email.send()
+    
+    try:
+        email.send()
+        print(f"✅ Activation email sent to {user.email}")
+        print(f"🔗 Activation URL: {activation_url}")
+        return True
+    except Exception as e:
+        print(f"❌ Error sending email: {e}")
+        return False
