@@ -65,7 +65,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'student_enrollment_db',
         'USER': 'postgres',
-        'PASSWORD': 'JE-KTJ69x',
+        'PASSWORD': 'admin',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -131,7 +131,7 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-
+# ========== CLOUDINARY CONFIGURATION ==========
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': 'dhcszgtm5',      
     'API_KEY': '897876677597466',            
@@ -140,13 +140,20 @@ CLOUDINARY_STORAGE = {
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'kd.aligsao@gmail.com'      
-EMAIL_HOST_PASSWORD = 'qfitqfyccmkyqxpb'     
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'kd.aligsao@gmail.com'   
+# ========== EMAIL CONFIGURATION ==========
+# USE CONSOLE BACKEND FOR DEVELOPMENT (emails appear in terminal)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Commented out SMTP settings (uncomment when ready for production)
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_HOST_USER = 'kd.aligsao@gmail.com'      
+# EMAIL_HOST_PASSWORD = 'qfitqfyccmkyqxpb'     
+# EMAIL_USE_TLS = True
+# DEFAULT_FROM_EMAIL = 'kd.aligsao@gmail.com'
+
+# Frontend URL for activation links
 FRONTEND_URL = 'http://localhost:3000'
 
 MEDIA_URL = '/media/'
