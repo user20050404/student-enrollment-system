@@ -119,7 +119,7 @@ export interface UserProfile {
   address: string;
   birth_date: string;
   age: number;
-  profile_picture?: string | null;
+  profile_picture_url?: string | null;
 }
 
 // ========== AUTHENTICATION API (User App) ==========

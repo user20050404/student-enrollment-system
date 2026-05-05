@@ -75,12 +75,12 @@ const ProfilePage: React.FC = () => {
 
   // Get profile picture URL from profile data
   const getProfilePictureUrl = () => {
-    if (profile && (profile as any).profile_picture) {
-      const url = (profile as any).profile_picture;
-      if (url.startsWith('http')) {
-        return url;
+    if (profile?.profile_picture_url) {
+      let url = profile.profile_picture_url;
+      if (!url.startsWith('http')) {
+        url = `http://localhost:8000${url}`;
       }
-      return `http://localhost:8000${url}`;
+      return url;
     }
     return null;
   };

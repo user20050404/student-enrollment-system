@@ -227,8 +227,8 @@ function AppContent() {
 
   // Helper function to get profile picture URL
   const getProfilePictureUrl = () => {
-    if (profile?.profile_picture) {
-      let url = profile.profile_picture;
+    if (profile?.profile_picture_url) {
+      let url = profile.profile_picture_url;
       if (!url.startsWith('http')) {
         url = `http://localhost:8000${url}`;
       }
