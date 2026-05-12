@@ -79,7 +79,7 @@ else:
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': 'student_enrollment_db',
             'USER': 'postgres',
-            'PASSWORD': 'admin',
+            'PASSWORD': 'kent2005',
             'HOST': 'localhost',
             'PORT': '5432',
         }
