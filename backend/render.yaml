@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: student-enrollment-api
+    runtime: python
+    buildCommand: ./build.sh
+    startCommand: gunicorn enrollment_system.wsgi:application
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: student-enrollment-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: false
+      - key: ALLOWED_HOSTS
+        value: .onrender.com

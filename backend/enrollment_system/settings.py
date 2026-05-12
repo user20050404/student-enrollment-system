@@ -1,14 +1,19 @@
 import os
+import dj_database_url
 from pathlib import Path
-from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-your-secret-key-here'
+# SECURITY WARNING: keep the secret key secret!
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-secret-key-here')
 
-DEBUG = True
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.onrender.com').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -22,15 +27,16 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
-    'cloudinary',           
-    'cloudinary_storage',   
+    'cloudinary',
+    'cloudinary_storage',
     'api',
     'user',
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -60,31 +66,29 @@ TEMPLATES = [
 WSGI_APPLICATION = 'enrollment_system.wsgi.application'
 
 # Database Configuration
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'student_enrollment_db',
-        'USER': 'postgres',
-        'PASSWORD': 'JE-KTJ69x',
-        'HOST': 'localhost',
-        'PORT': '5432',
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'student_enrollment_db',
+            'USER': 'postgres',
+            'PASSWORD': 'admin',
+            'HOST': 'localhost',
+            'PORT': '5432',
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 LANGUAGE_CODE = 'en-us'
@@ -93,13 +97,20 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://your-app-name.onrender.com",
 ]
+
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework settings
 REST_FRAMEWORK = {
@@ -107,59 +118,34 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ),
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
     ]
 }
 
 # JWT Settings
+from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
-    'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY,
-    'VERIFYING_KEY': None,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
-    'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-# ========== CLOUDINARY CONFIGURATION ==========
+# Cloudinary Configuration
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'dhcszgtm5',      
-    'API_KEY': '897876677597466',            
-    'API_SECRET': 'p0BVdy0Kri3CUU8a8LYsUoLid6o',     
+    'CLOUD_NAME': 'dhcszgtm5',
+    'API_KEY': '897876677597466',
+    'API_SECRET': 'p0BVdy0Kri3CUU8a8LYsUoLid6o',
 }
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
-# ========== EMAIL CONFIGURATION ==========
-# For Development - Console (prints to terminal)
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-# For Production - Gmail SMTP
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'kd.aligsao@gmail.com'
-EMAIL_HOST_PASSWORD = 'qfitqfyccmkyqxpb'  # App Password
-DEFAULT_FROM_EMAIL = 'kd.aligsao@gmail.com'
-SERVER_EMAIL = 'kd.aligsao@gmail.com'
-
-# Frontend URL for activation links
-FRONTEND_URL = 'http://localhost:3000'
-
-# Email timeout settings
-EMAIL_TIMEOUT = 30
-FRONTEND_URL = 'http://localhost:3000'
+# Email Configuration (Console for development)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://your-app-name.onrender.com')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
