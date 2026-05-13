@@ -100,7 +100,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://*.onrender.com",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework settings
