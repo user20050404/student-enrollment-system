@@ -3,7 +3,6 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import UserProfile
-from .utils import send_activation_email
 import uuid
 
 
@@ -56,34 +55,6 @@ class ActivateAccountSerializer(serializers.Serializer):
         return profile.user
 
 
-class ResendActivationSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    
-    def validate_email(self, value):
-        try:
-            user = User.objects.get(email=value, is_active=False)
-            profile = UserProfile.objects.get(user=user)
-            if profile.email_verified:
-                raise serializers.ValidationError("Account is already activated. Please login.")
-            return value
-        except User.DoesNotExist:
-            raise serializers.ValidationError("No inactive account found with this email")
-        except UserProfile.DoesNotExist:
-            raise serializers.ValidationError("Profile not found")
-    
-    def resend(self):
-        user = User.objects.get(email=self.validated_data['email'], is_active=False)
-        profile = UserProfile.objects.get(user=user)
-        
-        # Generate new token
-        profile.email_verification_token = uuid.uuid4()
-        profile.save()
-        
-        # Resend email
-        send_activation_email(user, profile)
-        return user
-
-
 class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     email = serializers.EmailField()
@@ -99,10 +70,8 @@ class RegisterSerializer(serializers.Serializer):
         return value
     
     def validate_email(self, value):
-        # Check if email exists with an ACTIVE user only
-        existing_active = User.objects.filter(email=value, is_active=True)
-        if existing_active.exists():
-            raise serializers.ValidationError("Email already exists with an active account. Please login.")
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already exists")
         return value
     
     def validate(self, data):
@@ -114,56 +83,26 @@ class RegisterSerializer(serializers.Serializer):
         validated_data.pop('confirm_password')
         profile_picture = validated_data.pop('profile_picture', None)
         
-        # Check if user already exists but is inactive
-        email = validated_data['email']
-        existing_user = User.objects.filter(email=email, is_active=False).first()
+        # Create user (active immediately)
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            is_active=True
+        )
         
-        if existing_user:
-            # Update existing user instead of creating new one
-            print(f"🔄 Updating existing inactive user: {existing_user.username}")
-            
-            existing_user.username = validated_data['username']
-            existing_user.set_password(validated_data['password'])
-            existing_user.first_name = validated_data.get('first_name', '')
-            existing_user.last_name = validated_data.get('last_name', '')
-            existing_user.is_active = False
-            existing_user.save()
-            
-            # Update or create profile
-            profile, created = UserProfile.objects.get_or_create(user=existing_user)
-            profile.profile_picture = profile_picture
-            profile.email_verification_token = uuid.uuid4()
-            profile.email_verified = False
-            profile.is_active = False
-            profile.save()
-            
-            # Send new activation email
-            send_activation_email(existing_user, profile)
-            
-            return existing_user
-        else:
-            # Create new user
-            user = User.objects.create_user(
-                username=validated_data['username'],
-                email=validated_data['email'],
-                password=validated_data['password'],
-                first_name=validated_data.get('first_name', ''),
-                last_name=validated_data.get('last_name', ''),
-                is_active=False
-            )
-            
-            profile = UserProfile.objects.create(
-                user=user,
-                profile_picture=profile_picture,
-                email_verification_token=uuid.uuid4(),
-                email_verified=False,
-                is_active=False
-            )
-            
-            # Send activation email
-            send_activation_email(user, profile)
-            
-            return user
+        # Create profile (already verified)
+        profile = UserProfile.objects.create(
+            user=user,
+            profile_picture=profile_picture,
+            email_verification_token=uuid.uuid4(),
+            email_verified=True,
+            is_active=True
+        )
+        
+        return user
 
 
 class LoginSerializer(serializers.Serializer):
@@ -178,17 +117,15 @@ class LoginSerializer(serializers.Serializer):
         if not user:
             raise serializers.ValidationError("Invalid username or password")
         
-        # Check if user is active
         if not user.is_active:
-            raise serializers.ValidationError("Account not activated. Please check your email for activation link.")
+            raise serializers.ValidationError("Account is disabled")
         
-        # Auto-create profile if missing (fixes "User profile not found" error)
+        # Get or create profile
         profile, created = UserProfile.objects.get_or_create(user=user)
         if created:
-            print(f"✅ Auto-created missing profile for: {user.username}")
-        
-        if not profile.email_verified:
-            raise serializers.ValidationError("Please verify your email before logging in. Check your inbox for the activation link.")
+            profile.email_verified = True
+            profile.is_active = True
+            profile.save()
         
         refresh = RefreshToken.for_user(user)
         

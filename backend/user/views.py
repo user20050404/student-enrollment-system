@@ -3,11 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import (
-    RegisterSerializer, LoginSerializer, UserProfileSerializer, 
-    ActivateAccountSerializer, ResendActivationSerializer
-)
 from .models import UserProfile
+from .serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer, ActivateAccountSerializer
 
 
 class RegisterView(APIView):
@@ -19,25 +16,17 @@ class RegisterView(APIView):
         print("Data:", request.data)
         print("=" * 50)
         
-        # Handle FormData (for profile picture)
-        if hasattr(request.data, 'dict'):
-            data = request.data.dict()
-        else:
-            data = request.data
-        
-        serializer = RegisterSerializer(data=data)
+        serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             try:
                 user = serializer.save()
                 return Response({
-                    'message': 'Registration successful. Please check your email or terminal for activation link.',
+                    'message': 'Registration successful',
                     'username': user.username,
-                    'email': user.email,
+                    'email': user.email
                 }, status=status.HTTP_201_CREATED)
             except Exception as e:
                 print("ERROR:", str(e))
-                import traceback
-                traceback.print_exc()
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
             print("SERIALIZER ERRORS:", serializer.errors)
@@ -64,27 +53,6 @@ class ActivateAccountView(APIView):
         else:
             return Response({
                 'error': 'Activation failed',
-                'details': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-
-class ResendActivationView(APIView):
-    permission_classes = [AllowAny]
-    
-    def post(self, request):
-        serializer = ResendActivationSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                user = serializer.resend()
-                return Response({
-                    'message': 'Activation email resent successfully. Please check your inbox or terminal.',
-                    'email': user.email
-                }, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({
-                'error': 'Failed to resend activation email',
                 'details': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -132,10 +100,7 @@ class ProfileView(APIView):
             serializer = UserProfileSerializer(profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except UserProfile.DoesNotExist:
-            # Auto-create profile if missing
-            profile = UserProfile.objects.create(user=request.user)
-            serializer = UserProfileSerializer(profile)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
     
     def put(self, request):
         try:
