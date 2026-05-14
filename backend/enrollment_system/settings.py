@@ -15,7 +15,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-secret-key-here'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '172.22.32.236', '.onrender.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '172.22.32.236', '172.20.10.5' '.onrender.com']
 
 # Application definition
 INSTALLED_APPS = [
@@ -106,6 +106,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://172.22.32.236:3000",
     "http://172.22.32.236:8081",
     "exp://172.22.32.236:8081",
+    "http://172.20.10.5:8081",
     "https://*.onrender.com",
 ]
 
